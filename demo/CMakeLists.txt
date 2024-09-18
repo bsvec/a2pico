@@ -34,4 +34,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         pico_stdlib
         pico_multicore
         a2pico
+        pico_cyw43_arch_none
         )

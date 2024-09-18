@@ -28,51 +28,86 @@ SOFTWARE.
 #include <pico/stdlib.h>
 #include <pico/multicore.h>
 
+#ifndef PICO_DEFAULT_LED_PIN
+#include "pico/cyw43_arch.h"
+#endif
+
 #include <a2pico.h>
 
 #include "board.h"
 
-void main(void) {
+void do_nothing(uint x, bool y)
+{
+    return;
+}
+
+int main(void)
+{
     multicore_launch_core1(board);
+
+    uint led_pin = 0;
+    void (*led_put)(uint, bool) = do_nothing;
 
 #ifdef PICO_DEFAULT_LED_PIN
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+    led_pin = PICO_DEFAULT_LED_PIN;
+    led_put = gpio_put;
+#else
+    if (strcmp(PICO_BOARD, "pico_w"))
+    {
+        if (cyw43_arch_init())
+        {
+            printf("Wi-Fi init failed");
+            return -1;
+        }
+
+        led_pin = CYW43_WL_GPIO_LED_PIN;
+        led_put = cyw43_arch_gpio_put;
+    }
 #endif
 
     stdio_init_all();
 
-    while (!stdio_usb_connected()) {
+    while (!stdio_usb_connected())
+    {
     }
 
     printf("\n\nCopyright (c) 2022 Oliver Schmidt (https://a2retro.de/)\n\n");
 
-    while (true) {
-        if (stdio_usb_connected()) {
-            if (multicore_fifo_rvalid()) {
+    while (true)
+    {
+        if (stdio_usb_connected())
+        {
+            if (multicore_fifo_rvalid())
+            {
                 putchar(multicore_fifo_pop_blocking());
             }
         }
 
         int data = getchar_timeout_us(0);
-        if (data != PICO_ERROR_TIMEOUT) {
-            if (data == 27) {
+        if (data != PICO_ERROR_TIMEOUT)
+        {
+            if (data == 27)
+            {
                 a2pico_irq(true);
             }
-            else if (multicore_fifo_wready()) {
+            else if (multicore_fifo_wready())
+            {
                 multicore_fifo_push_blocking(data);
-            } else {
+            }
+            else
+            {
                 putchar('\a');
             }
         }
 
-        if (reset) {
+        if (reset)
+        {
             reset = false;
             printf(" RESET ");
         }
 
-#ifdef PICO_DEFAULT_LED_PIN
-        gpio_put(PICO_DEFAULT_LED_PIN, active);
-#endif
+        led_put(led_pin, active);
     }
 }
