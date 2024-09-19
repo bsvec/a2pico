@@ -54,7 +54,7 @@ int main(void)
     led_pin = PICO_DEFAULT_LED_PIN;
     led_put = gpio_put;
 #else
-    if (strcmp(PICO_BOARD, "pico_w"))
+    if (strcmp(PICO_BOARD, "pico_w") == 0)
     {
         if (cyw43_arch_init())
         {
